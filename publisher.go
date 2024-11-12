@@ -17,9 +17,9 @@ import (
 func publishMessages(client mqtt.Client, topic string, message string, n int, qos int, socketConn net.Conn) {
 	// 발행 횟수를 topic/count 주제로 먼저 발행
 	countTopic := topic + "/count"
-	token := client.Publish(countTopic, byte(qos), false, fmt.Sprintf("%d", n))
+	countMessage := fmt.Sprintf("%d", n)
+	token := client.Publish(countTopic, byte(qos), false, countMessage)
 	token.Wait()
-	fmt.Printf("-> Published count on %s: %d\n", countTopic, n)
 
 	// 1. MQTT 브로커에 메시지 발행
 	for i := 1; i <= n; i++ {
@@ -30,6 +30,12 @@ func publishMessages(client mqtt.Client, topic string, message string, n int, qo
 		token.Wait()                                          // 발행이 완료될 때까지 대기
 		fmt.Printf("- Published: %s\n", msg)
 	}
+
+	// 마지막에 발행한 메시지를 topic/last 주제로 발행
+	lastTopic := topic + "/last"
+	lastMessage := fmt.Sprintf("%s#%d", message, n)
+	client.Publish(lastTopic, byte(qos), false, lastMessage)
+	token.Wait()
 
 	// 2. 소켓을 통해 메시지 전송 (옵션)
 	if socketConn != nil {
@@ -56,7 +62,6 @@ func main() {
 	// QoS가 0, 1, 2가 아닌 값이 제공된다면?
 	if *qos < 0 || *qos > 2 {
 		// Fatalf is equivalent to [Printf] followed by a call to os.Exit(1).
-		// -- Printf와 os.Exit를 조합한 형태로, 형식화된 메시지를 출력한 후 프로그램을 종료
 		log.Fatalf("-- Invalid QoS value: %d. Allowed values are 0, 1, or 2.", *qos)
 	}
 
@@ -113,15 +118,12 @@ func main() {
 	// -- 소켓 서버에 구독자가 연결된 후에, 발행할 메시지를 입력 받도록 함
 	scanner := bufio.NewScanner(os.Stdin) // 표준 입력(키보드)을 줄 단위로 읽기 위한 스캐너 생성
 
-	// 메시지 발행 후, 또 메시지를 입력받도록 함
-	// exit 입력 시 발행 종료
 	for {
 		fmt.Print("Enter the message to publish (type 'exit' to quit): ")
 		scanner.Scan()            // 사용자 입력을 대기하다가 엔터를 누르면 읽기 -> 읽고 내부 버퍼에 저장
 		message := scanner.Text() // 읽은 입력을 문자열로 반환하여 변수에 저장
 
 		if strings.ToLower(message) == "exit" {
-			// 사용자가 발행자 측에서 exit 입력 시 발행자 프로그램 종료
 			exitTopic := *topic + "/exit"
 			client.Publish(exitTopic, 2, false, "exit")
 			fmt.Println("-- Exiting publisher.")
