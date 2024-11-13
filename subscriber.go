@@ -23,6 +23,10 @@ type SubscriberResult struct {
 
 // MQTT 메시지 수신 함수
 func subscribeToMQTT(client mqtt.Client, topic string, id int, wg *sync.WaitGroup, results chan<- SubscriberResult, stopChan chan struct{}, once *sync.Once) {
+	// 각 주제에 대한 구독 설정되면, 특정 주제에 메시지 발행될 때 자동으로 구독 핸들러 호출됨
+	// 메인 고루틴은 <-stopChan을 통해 채널 닫히기를 대기
+	// exit 메시지가 수신되면 stopChan이 닫히고, 모든 핸들러는 return으로 종료
+
 	defer wg.Done()
 
 	receivedCount := 0
@@ -153,9 +157,10 @@ func main() {
 	totalMessages := 0
 	totalReceived := 0
 	successfulCount := 0
-	unsuccessfulSubscribers := []int{}
+	unsuccessfulSubscribers := []int{} // 빈 int 슬라이스 초기화
 
-	for result := range results {
+	// results 채널이 닫히기 전까지 구독자 결과를 하나씩 꺼내어 처리
+	for result := range results { // result는 results 채널로부터 하나씩 꺼내온 SubscriberResult 구조체 인스턴스
 		totalMessages += result.Expectedcnt
 		totalReceived += result.Receivedcnt
 
@@ -172,7 +177,7 @@ func main() {
 	fmt.Printf("\n모든 구독자(%d명) 중 %d명이 메시지를 정상적으로 수신했습니다.\n\n", *sn, successfulCount)
 	fmt.Printf("정상 수신 구독자 수: %d\n", successfulCount)
 	fmt.Printf("비정상 수신 구독자 수: %d\n", len(unsuccessfulSubscribers))
-	for _, id := range unsuccessfulSubscribers {
+	for _, id := range unsuccessfulSubscribers { // index(무시)와 id
 		fmt.Printf("- Subscriber%d\n", id)
 	}
 
