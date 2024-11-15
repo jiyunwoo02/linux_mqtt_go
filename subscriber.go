@@ -51,7 +51,7 @@ func subscribeToMQTT(client mqtt.Client, topic string, id int, wg *sync.WaitGrou
 			fmt.Printf("-> Subscriber %d received exit message. Shutting down.\n", id)
 			// stopChan은 종료 신호를 전달하기 위한 채널로 사용
 			// once.Do는 여러 구독자 중 단 한 명만 close(stopChan)을 실행하도록 보장하여, 불필요한 중복 종료 신호 전송 방지
-			once.Do(func() {
+			once.Do(func() { // func() is niladic: having no arguments.
 				// fmt.Printf("채널을 닫는 구독자: subscriber %d\n", id) // 매번 랜덤
 				close(stopChan) // exit 수신 시 채널을 닫아 종료 '신호'를 전달 (한 번만)
 			})
@@ -106,16 +106,15 @@ func main() {
 	topic := flag.String("tpc", "test/topic", "MQTT topic")
 	sn := flag.Int("sn", 1, "Number of subscribers")
 	port := flag.String("p", "", "Port to connect for publisher connections")
-
 	flag.Parse()
 
 	var wg sync.WaitGroup
 	var conn net.Conn
 	var err error
+	var once sync.Once // stopChan을 한 번만 닫기 위한 sync.Once
 
 	results := make(chan SubscriberResult, *sn)
 	stopChan := make(chan struct{}) // 종료 신호용 채널
-	var once sync.Once              // stopChan을 한 번만 닫기 위한 sync.Once
 
 	// 빈 구조체 테스트
 	// test1 := struct{}{}

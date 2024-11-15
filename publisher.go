@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net" // Go에서 소켓 통신을 활용하기 위해서는 net 패키지 사용
+	"net"
 	"os"
 	"strings"
 	"time"

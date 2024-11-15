@@ -55,8 +55,6 @@ func startBroker(port string, brokerID string) {
 func main() {
 	port := flag.String("port", ":1883", "The port on which the broker should run")
 	brokerID := flag.String("id", "broker1", "The ID of the broker")
-
 	flag.Parse()
-
 	startBroker(*port, *brokerID)
 }
