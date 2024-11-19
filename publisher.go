@@ -14,13 +14,13 @@ import (
 )
 
 func publishMessages(client mqtt.Client, topic string, message string, n int, qos int, socketConn net.Conn) {
-	// 발행 횟수를 topic/count 주제로 먼저 발행
+	// 반복 발행 횟수 -> topic/count 주제로 발행
 	countTopic := topic + "/count"
 	countMessage := fmt.Sprintf("%d", n)
 	token := client.Publish(countTopic, byte(qos), false, countMessage)
 	token.Wait()
 
-	// 1. MQTT 브로커에 메시지 발행
+	// 메시지 -> MQTT 브로커에 발행
 	for i := 1; i <= n; i++ {
 		// Sprintf: 형식화된 결과를 문자열로 반환 <-> Printf: 반환값이 없으며, 바로 콘솔에 출력
 		msg := fmt.Sprintf("%s#%d", message, i) // Hello#1 형식 <- 메시지에 발행 순서 포함
@@ -29,16 +29,16 @@ func publishMessages(client mqtt.Client, topic string, message string, n int, qo
 		fmt.Printf("- Published: %s\n", msg)
 	}
 
-	// 마지막에 발행한 메시지를 topic/last 주제로 발행
+	// 마지막에 발행한 메시지 -> topic/last 주제로 발행
 	lastTopic := topic + "/last"
 	lastMessage := fmt.Sprintf("%s#%d", message, n)
 	client.Publish(lastTopic, byte(qos), false, lastMessage)
 	token.Wait()
 
-	// 2. 소켓을 통해 메시지 전송 (옵션)
+	// 메시지 -> 소켓을 통해 전송 (옵션)
 	if socketConn != nil {
 		socketMessage := fmt.Sprintf("%s, n=%d\n", message, n) // Hello, n=3 형식
-		_, err := socketConn.Write([]byte(socketMessage))      // writes data to the connection.
+		_, err := socketConn.Write([]byte(socketMessage))  
 		if err != nil {
 			log.Printf("-- Error sending message via socket: %v", err)
 		}
@@ -51,7 +51,7 @@ func main() {
 	id := flag.String("id", "publisher1", "The id of the publisher")
 	topic := flag.String("tpc", "test/topic", "MQTT topic")
 	address := flag.String("add", "tcp://localhost:1883", "Address of the broker")
-	qos := flag.Int("q", 0, "QoS level (0, 1, 2)")                            // qos 플래그 추가 (0, 1, 2)
+	qos := flag.Int("q", 2, "QoS level (0, 1, 2)")                            // qos 플래그 추가 (0, 1, 2)
 	n := flag.Int("n", 1, "Number of messages to publish")                    // n 플래그 추가 (n : 발행하는 메시지의 반복 발행 횟수)
 	port := flag.String("p", "", "Port to listen for subscriber connections") // p 플래그 추가 (p : 리슨 포트, TCP 소켓 서버 역할)
 	flag.Parse()
