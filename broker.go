@@ -25,6 +25,8 @@ func startBroker(port string, brokerID string) {
 	tcp := listeners.NewTCP(listeners.Config{
 		ID:      brokerID,
 		Address: port,
+		// Address 필드에 전달된 값이 포트 번호만 지정되었기 때문에, 모든 네트워크 인터페이스(0.0.0.0)에서 해당 포트를 사용
+		// 특정 네트워크 인터페이스(예: 특정 IP 주소)에서만 연결을 수락하도록 제한하고 싶다면, Address에 IP 주소를 포함
 	})
 
 	err := server.AddListener(tcp)

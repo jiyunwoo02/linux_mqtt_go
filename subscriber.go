@@ -67,13 +67,13 @@ func subscribeToMQTT(client mqtt.Client, topic string, id int, wg *sync.WaitGrou
 	})
 
 	// MQTT 주제 구독 및 메시지 수신 핸들러 설정 (QoS=2)
-	client.Subscribe(topic, 2, func(_ mqtt.Client, msg mqtt.Message) {
+	client.Subscribe(topic, 2, func(_ mqtt.Client, msg mqtt.Message) { // msg: 수신된 메시지의 여러 정보를 포함하는 구조체 겸 메시지 객체
 		select {
 		case <-stopChan: // stopChan이 닫히면 채널이 닫힘을 감지하고 종료
 			return
 		default:
 			// stopChan이 닫히지 않은 경우 메시지를 계속 수신
-			lastReceivedMsg = string(msg.Payload())
+			lastReceivedMsg = string(msg.Payload()) // payload: 메시지의 내용을 []byte로 반환
 			// fmt.Printf("[Subscriber %d] Received from MQTT: %s\n", id, lastReceivedMsg)
 			// fmt.Printf("수신한 메시지: %b\n", msg.Payload()) // 바이트를 이진수로 출력
 			// Payload() []byte : 인코딩은 문자열을 []byte로 변환할 때 자동으로 이루어짐.
@@ -164,20 +164,21 @@ func main() {
 	for _, result := range subscriberResults {
 		totalMessages += result.Expectedcnt
 		totalReceived += result.Receivedcnt
+		lastReceivedMsg := result.LastReceivedMsg
+		expectedLastMsg := result.ExpectedLastMsg
 		if result.Receivedcnt == result.Expectedcnt {
 			successfulCount++
 		} else {
 			unsuccessfulSubscribers = append(unsuccessfulSubscribers, result.ID)
 		}
-		// 수신한 마지막 메시지와 기대한 마지막 메시지 처리
-		lastReceivedMsg := result.LastReceivedMsg
-		expectedLastMsg := result.ExpectedLastMsg
-		// 메시지 길이가 20자 이상이면 자르고 길이 출력
+		// 메시지 길이가 20자 이상이면 자르고, 길이도 출력
 		if len(lastReceivedMsg) > 20 {
-			lastReceivedMsg = lastReceivedMsg[:20] + fmt.Sprintf(" (len=%d)", len(result.LastReceivedMsg))
+			lastReceivedMsg = lastReceivedMsg[:20] + 
+			fmt.Sprintf(" (len=%d)", len(result.LastReceivedMsg))
 		}
 		if len(expectedLastMsg) > 20 {
-			expectedLastMsg = expectedLastMsg[:20] + fmt.Sprintf(" (len=%d)", len(result.ExpectedLastMsg))
+			expectedLastMsg = expectedLastMsg[:20] + 
+			fmt.Sprintf(" (len=%d)", len(result.ExpectedLastMsg))
 		}
 		fmt.Printf("Subscriber %s | %s                 | %s                 | %d                  | %s                  | %s\n",
 			humanize.Comma(int64(result.ID)), humanize.Comma(int64(result.Receivedcnt)),
